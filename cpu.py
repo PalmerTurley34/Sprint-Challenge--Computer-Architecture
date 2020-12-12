@@ -12,6 +12,10 @@ class CPU:
     CALL = 0b01010000
     RET = 0b00010001
     ADD = 0b10100000
+    CMP = 0b10100111
+    JMP = 0b01010100
+    JEQ = 0b01010101
+    JNE = 0b01010110
     sp = 7
 
     def __init__(self):
@@ -28,7 +32,12 @@ class CPU:
         self.branchtable[self.CALL] = self.CALL_handle
         self.branchtable[self.RET] = self.RET_handle
         self.branchtable[self.ADD] = self.ADD_handle
+        self.branchtable[self.CMP] = self.CMP_handle
+        self.branchtable[self.JMP] = self.JMP_handle
+        self.branchtable[self.JNE] = self.JNE_handle
+        self.branchtable[self.JEQ] = self.JEQ_handle
         self.registers[self.sp] = 0xf4
+        self.fl = 0b00000000
 
 
     def load(self, program_file):
@@ -57,6 +66,13 @@ class CPU:
             self.registers[reg_a] += self.registers[reg_b]
         elif op == "MUL":
             self.registers[reg_a] *= self.registers[reg_b]
+        elif op == "CMP":
+            if self.registers[reg_a] == self.registers[reg_b]:
+                self.fl = 0b00000001
+            elif self.registers[reg_a] < self.registers[reg_b]:
+                self.fl = 0b00000100
+            else:
+                self.fl = 0b00000010
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -133,3 +149,22 @@ class CPU:
     def RET_handle(self, a, b):
         self.pc = self.ram[self.registers[self.sp]]
         self.registers[self.sp] += 1
+
+    def CMP_handle(self, a, b):
+        self.alu('CMP', a, b)
+        self.pc += 3
+
+    def JMP_handle(self, a, b):
+        self.pc = self.registers[a]
+
+    def JEQ_handle(self, a, b):
+        if (self.fl & 0b00000001) == 0b00000001:
+            self.pc = self.registers[a]
+        else:
+            self.pc += 2
+    def JNE_handle(self, a, b):
+        if (self.fl & 0b00000001) == 0b00000000:
+            self.pc = self.registers[a]
+        else:
+            self.pc += 2
+
